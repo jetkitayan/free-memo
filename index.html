@@ -249,22 +249,102 @@
       randomResult.textContent = data.error || `失敗（HTTP ${res.status}）`;
       return;
     }
+
     const m = data.memo;
     const jstC = new Date(m.created_at).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' });
     const jstU = new Date(m.updated_at).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' });
+    const visible = (m.status ?? 1) === 1;
 
     randomResult.innerHTML = `
-      <div>${escapeHtml(m.text).replace(/\n/g, "<br>")}</div>
-      <div class="meta">#${m.id} / 作成:${jstC} / 最終更新:${jstU}
-        <button id="rndCopy" style="margin-left:8px;">コピー</button>
-        <button id="rndReroll" style="margin-left:6px;">もう一回</button>
+      <div class="view">
+        <div>${escapeHtml(m.text).replace(/\n/g, "<br>")}</div>
+        <div class="meta">
+          #${m.id} / 作成:${jstC} / 最終更新:${jstU} / ${visible ? "" : "（削除済み）"}
+          <button class="copy-btn" style="margin-left:8px;">コピー</button>
+          <button class="edit-btn" style="margin-left:6px;">編集</button>
+          <button class="toggle-btn" style="margin-left:6px;">
+            ${visible ? "削除扱いにする" : "復活させる"}
+          </button>
+          <button class="reroll-btn" style="margin-left:6px;">もう一回</button>
+          <button class="hide-btn" style="margin-left:6px;">非表示</button>
+        </div>
+      </div>
+
+      <div class="edit">
+        <textarea class="edit-text"></textarea>
+        <div class="row">
+          <span class="right">
+            <button class="save-btn">保存</button>
+            <button class="cancel-btn" type="button">キャンセル</button>
+          </span>
+        </div>
       </div>
     `;
-    document.getElementById("rndCopy").addEventListener("click", async () => {
-      try { await navigator.clipboard.writeText(m.text); msg.textContent = "コピーしました。"; }
-      catch { alert("コピーに失敗しました"); }
+
+    // 編集欄初期値
+    randomResult.querySelector(".edit-text").value = m.text;
+
+    // コピー
+    randomResult.querySelector(".copy-btn").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(m.text);
+        msg.textContent = "コピーしました。";
+      } catch {
+        alert("コピーに失敗しました");
+      }
     });
-    document.getElementById("rndReroll").addEventListener("click", doReroll);
+
+    // 非表示
+    randomResult.querySelector(".hide-btn").addEventListener("click", () => {
+      randomResult.style.display = "none";
+    });
+
+    // もう一回
+    randomResult.querySelector(".reroll-btn").addEventListener("click", doReroll);
+
+    // 編集表示切替
+    randomResult.querySelector(".edit-btn").addEventListener("click", () => {
+      randomResult.querySelector(".view").style.display = "none";
+      randomResult.querySelector(".edit").style.display = "block";
+    });
+    randomResult.querySelector(".cancel-btn").addEventListener("click", () => {
+      randomResult.querySelector(".edit").style.display = "none";
+      randomResult.querySelector(".view").style.display = "block";
+    });
+
+    // 保存（PUT）
+    randomResult.querySelector(".save-btn").addEventListener("click", async () => {
+      const newText = randomResult.querySelector(".edit-text").value;
+      const r = await apiFetch(`/api/memos/${m.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ text: newText })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.ok) {
+        msg.textContent = "更新しました。";
+        await loadList();   // 一覧も更新
+        await doReroll();   // ランダム枠も更新（最新表示）
+      } else {
+        alert(d.error || "更新に失敗しました");
+      }
+    });
+
+    // 削除/復活（status）
+    randomResult.querySelector(".toggle-btn").addEventListener("click", async () => {
+      const nextVal = visible ? 0 : 1;
+      const r = await apiFetch(`/api/memos/${m.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: nextVal })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.ok) {
+        msg.textContent = nextVal === 0 ? "削除扱いにしました。" : "復活させました。";
+        await loadList();
+        await doReroll();
+      } else {
+        alert(d.error || "更新に失敗しました");
+      }
+    });
   }
 
   // 初回ロード
