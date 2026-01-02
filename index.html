@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>メモ保存（分類なし）</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; background:#fafafa; }
+    h1 { margin: 0 0 16px; }
+    form, .list { max-width: 720px; }
+    textarea { width:100%; min-height:120px; padding:12px; font-size:16px; box-sizing:border-box; }
+    button { padding: 10px 16px; font-size: 15px; border-radius: 8px; border: 1px solid #ccc; background:#fff; cursor:pointer; }
+    button:hover { background:#f0f0f0; }
+    .toolbar { display:flex; flex-wrap: wrap; gap:10px; align-items:center; margin: 8px 0 20px; }
+    .item { background:#fff; border:1px solid #e5e5e5; border-radius:12px; padding:14px; margin:10px 0; }
+    .meta { font-size: 12px; color:#666; margin-top:8px; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+    input[type="number"]{ width: 100px; padding: 6px 8px; }
+    .right { margin-left:auto; }
+    .muted { color:#666; font-size:12px; }
+    .del-btn { border-color:#f33; color:#f33; }
+    .del-btn:hover { background:#fee; }
+    .edit { margin-top:8px; display:none; }
+    .edit textarea { width:100%; min-height:120px; padding:8px; }
+  </style>
+</head>
+<body>
+  <h1>メモ保存（分類なし）</h1>
+
+  <form id="form">
+    <label for="text">文章</label>
+    <textarea id="text" placeholder="ここにメモを入力…"></textarea>
+
+    <div class="toolbar">
+      <button type="submit">保存する</button>
+      <span id="msg"></span>
+    </div>
+  </form>
+
+  <div class="row">
+    <label for="limit">一覧の表示件数</label>
+    <input id="limit" type="number" value="50" min="1" max="500">
+    <button id="reload" type="button">一覧取得</button>
+
+    <label style="display:flex; gap:6px; align-items:center;">
+      <input type="checkbox" id="showAll"> 削除済みも含める
+    </label>
+
+    <button id="export" type="button">CSV出力</button>
+
+    <span class="right">
+      <button id="showRandom" type="button">ランダム表示</button>
+    </span>
+  </div>
+
+  <div id="randomResult" class="item" style="display:none; background:#f7fff7;"></div>
+  <div class="list" id="list"></div>
+
+<script>
+  const API_BASE = "https://YOUR-WORKER.example.workers.dev";
+
+  const form = document.getElementById("form");
+  const textEl = document.getElementById("text");
+  const msg = document.getElementById("msg");
+  const list = document.getElementById("list");
+  const limitInput = document.getElementById("limit");
+  const reloadBtn = document.getElementById("reload");
+  const exportBtn = document.getElementById("export");
+  const showAll = document.getElementById("showAll");
+  const showRandomBtn = document.getElementById("showRandom");
+  const randomResult = document.getElementById("randomResult");
+
+  function escapeHtml(s){
+    return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+
+  async function apiFetch(path, options = {}) {
+    const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+    const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+    return res;
+  }
+
+  // 保存
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    msg.textContent = "";
+
+    const body = { text: (textEl.value || "").trim() };
+    if (!body.text) { msg.textContent = "文章が空です。"; return; }
+
+    const res = await apiFetch(`/api/memos`, { method:"POST", body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.ok) {
+      msg.textContent = "保存しました。";
+      textEl.value = "";
+      await loadList();
+    } else {
+      msg.textContent = data.error || `保存に失敗（HTTP ${res.status})`;
+    }
+  });
+
+  // 一覧
+  reloadBtn.addEventListener("click", loadList);
+
+  async function loadList() {
+    const limit = Number(limitInput.value || 50);
+    const all = showAll.checked ? "&all=1" : "";
+    const res = await apiFetch(`/api/memos?limit=${encodeURIComponent(limit)}${all}`);
+    const data = await res.json().catch(() => ({}));
+    list.innerHTML = "";
+
+    if (!res.ok || !data.ok) {
+      list.textContent = data.error || `取得に失敗（HTTP ${res.status})`;
+      return;
+    }
+    const memos = data.memos || [];
+    if (memos.length === 0) {
+      list.textContent = "登録はまだありません。";
+      return;
+    }
+
+    for (const m of memos) {
+      const div = document.createElement("div");
+      div.className = "item";
+
+      const jstC = new Date(m.created_at).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' });
+      const jstU = new Date(m.updated_at).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' });
+      const visible = (m.status ?? 1) === 1;
+
+      div.innerHTML = `
+        <div class="view">
+          <div>${escapeHtml(m.text).replace(/\n/g, "<br>")}</div>
+          <div class="meta">
+            #${m.id} / 作成:${jstC} / 最終更新:${jstU} / ${visible ? "" : "（削除済み）"}
+            <button class="copy-btn" style="margin-left:8px;">コピー</button>
+            <button class="edit-btn" style="margin-left:6px;">編集</button>
+            <button class="toggle-btn" style="margin-left:6px;">
+              ${visible ? "削除扱いにする" : "復活させる"}
+            </button>
+            <button class="del-btn hard-del" style="margin-left:6px;">完全削除(※未実装)</button>
+          </div>
+        </div>
+
+        <div class="edit">
+          <textarea class="edit-text"></textarea>
+          <div class="row">
+            <span class="right">
+              <button class="save-btn">保存</button>
+              <button class="cancel-btn" type="button">キャンセル</button>
+            </span>
+          </div>
+        </div>
+      `;
+
+      div.querySelector(".edit-text").value = m.text;
+
+      // コピー
+      div.querySelector(".copy-btn").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(m.text);
+          msg.textContent = "コピーしました。";
+        } catch (e) {
+          alert("コピーに失敗しました");
+        }
+      });
+
+      // 編集表示切替
+      div.querySelector(".edit-btn").addEventListener("click", () => {
+        div.querySelector(".view").style.display = "none";
+        div.querySelector(".edit").style.display = "block";
+      });
+      div.querySelector(".cancel-btn").addEventListener("click", () => {
+        div.querySelector(".edit").style.display = "none";
+        div.querySelector(".view").style.display = "block";
+      });
+
+      // 保存（PUT）
+      div.querySelector(".save-btn").addEventListener("click", async () => {
+        const newText = div.querySelector(".edit-text").value;
+        const r = await apiFetch(`/api/memos/${m.id}`, {
+          method: "PUT",
+          body: JSON.stringify({ text: newText })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok) await loadList();
+        else alert(d.error || "更新に失敗しました");
+      });
+
+      // 削除/復活（status）
+      div.querySelector(".toggle-btn").addEventListener("click", async () => {
+        const nextVal = visible ? 0 : 1;
+        const r = await apiFetch(`/api/memos/${m.id}`, {
+          method: "PUT",
+          body: JSON.stringify({ status: nextVal })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok) await loadList();
+        else alert(d.error || "更新に失敗しました");
+      });
+
+      // 完全削除は今回は未実装（必要ならAPI追加する）
+      div.querySelector(".hard-del").addEventListener("click", () => {
+        alert("完全削除は未実装です（論理削除で運用中）。必要ならAPI追加します。");
+      });
+
+      list.appendChild(div);
+    }
+  }
+
+  // CSV出力
+  exportBtn.addEventListener("click", async () => {
+    const all = showAll.checked ? "?all=1" : "";
+    const res = await apiFetch(`/api/export_csv${all}`);
+    if (!res.ok) { alert(`エクスポート失敗（HTTP ${res.status}）`); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `memos_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  // ランダム表示
+  showRandomBtn.addEventListener("click", doReroll);
+
+  async function doReroll() {
+    const res = await apiFetch(`/api/memos/random`);
+    const data = await res.json().catch(() => ({}));
+    randomResult.style.display = "block";
+
+    if (!res.ok || !data.ok) {
+      randomResult.textContent = data.error || `失敗（HTTP ${res.status}）`;
+      return;
+    }
+    const m = data.memo;
+    const jstC = new Date(m.created_at).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' });
+    const jstU = new Date(m.updated_at).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' });
+
+    randomResult.innerHTML = `
+      <div>${escapeHtml(m.text).replace(/\n/g, "<br>")}</div>
+      <div class="meta">#${m.id} / 作成:${jstC} / 最終更新:${jstU}
+        <button id="rndCopy" style="margin-left:8px;">コピー</button>
+        <button id="rndReroll" style="margin-left:6px;">もう一回</button>
+      </div>
+    `;
+    document.getElementById("rndCopy").addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(m.text); msg.textContent = "コピーしました。"; }
+      catch { alert("コピーに失敗しました"); }
+    });
+    document.getElementById("rndReroll").addEventListener("click", doReroll);
+  }
+
+  // 初回ロード
+  loadList();
+</script>
+</body>
+</html>
