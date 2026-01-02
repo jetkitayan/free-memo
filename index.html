@@ -235,9 +235,19 @@
         else alert(d.error || "更新に失敗しました");
       });
 
-      // 完全削除は今回は未実装（必要ならAPI追加する）
-      div.querySelector(".hard-del").addEventListener("click", () => {
-        alert("完全削除は未実装です（論理削除で運用中）。必要ならAPI追加します。");
+      // 完全削除
+      div.querySelector(".hard-del").addEventListener("click", async () => {
+        if (!confirm(`#${m.id} を完全削除します。元に戻せません。OK？`)) return;
+
+        const r = await apiFetch(`/api/memos/${m.id}`, { method: "DELETE" });
+        const d = await r.json().catch(() => ({}));
+
+        if (r.ok && d.ok) {
+          msg.textContent = "完全削除しました。";
+          await loadList();
+        } else {
+          alert(d.error || `完全削除に失敗（HTTP ${r.status}）`);
+        }
       });
 
       list.appendChild(div);
