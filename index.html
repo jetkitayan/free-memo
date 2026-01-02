@@ -236,7 +236,7 @@
       });
 
       // 完全削除
-      div.querySelector(".hard-del").addEventListener("click", async () => {
+      div.querySelector(".hard-del-btn").addEventListener("click", async () => {
         if (!confirm(`#${m.id} を完全削除します。元に戻せません。OK？`)) return;
 
         const r = await apiFetch(`/api/memos/${m.id}`, { method: "DELETE" });
