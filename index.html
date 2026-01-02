@@ -27,6 +27,22 @@
 <body>
   <h1>メモ保存（分類なし）</h1>
 
+  <!-- ▼ログイン画面 -->
+  <div id="login" class="item" style="max-width:720px;">
+    <div style="font-weight:600; margin-bottom:8px;">ログイン</div>
+  
+    <div class="row" style="margin-bottom:8px;">
+      <input id="loginUser" placeholder="ユーザー名" style="padding:8px; flex:1; min-width:180px;">
+      <input id="loginPass" placeholder="パスワード" type="password" style="padding:8px; flex:1; min-width:180px;">
+      <button id="loginBtn" type="button">ログイン</button>
+    </div>
+  
+    <div id="loginMsg" class="muted"></div>
+  </div>
+  
+  <!-- ▼アプリ本体（ログイン成功後に表示） -->
+  <div id="app" style="display:none;">
+  
   <form id="form">
     <label for="text">文章</label>
     <textarea id="text" placeholder="ここにメモを入力…"></textarea>
@@ -96,6 +112,42 @@
     return res;
   }
 
+  // ログイン成功後の表示切替
+  function showApp() {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
+  }
+  function showLogin(message = "") {
+    document.getElementById("app").style.display = "none";
+    document.getElementById("login").style.display = "block";
+    document.getElementById("loginMsg").textContent = message;
+  }
+  
+  // ログインボタン
+  document.getElementById("loginBtn").addEventListener("click", async () => {
+    const u = document.getElementById("loginUser").value.trim();
+    const p = document.getElementById("loginPass").value;
+  
+    if (!u || !p) { showLogin("ユーザー名とパスワードを入力してね"); return; }
+  
+    BASIC_USER = u;
+    BASIC_PASS = p;
+  
+    // 認証チェック（一覧1件）
+    const res = await apiFetch(`/api/memos?limit=1`, { method: "GET" });
+  
+    if (res.ok) {
+      localStorage.setItem(LS_USER_KEY, u);
+      localStorage.setItem(LS_PASS_KEY, p);
+      showApp();
+      loadList();
+    } else {
+      BASIC_USER = "";
+      BASIC_PASS = "";
+      showLogin("認証に失敗しました");
+    }
+  });
+  
   // 保存
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -410,5 +462,6 @@
   // 初回ロード
   loadList();
 </script>
+</div><!-- /#app -->
 </body>
 </html>
