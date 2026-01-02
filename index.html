@@ -84,7 +84,11 @@
   }
 
   async function apiFetch(path, options = {}) {
-    const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": basicAuthHeader(),
+      ...(options.headers || {})
+    };
     const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
     return res;
   }
