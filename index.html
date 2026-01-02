@@ -113,6 +113,29 @@
     }
   });
 
+  // DELETE /api/memos/:id
+  async function handleDeleteMemo(request, env, id) {
+    // Basic認証してるならここでも必ずチェック（既存の認証関数を呼ぶ）
+    // if (!checkBasicAuth(request, env)) return new Response("Unauthorized", { status: 401 });
+
+    const memoId = Number(id);
+    if (!Number.isFinite(memoId)) {
+      return Response.json({ ok: false, error: "invalid id" }, { status: 400 });
+    }
+
+    const r = await env.memo_save.prepare("DELETE FROM memos WHERE id = ?")
+      .bind(memoId)
+      .run();
+
+    // D1の結果が環境で違うことあるので「削除0件」も判定しておく
+    const changed = r?.meta?.changes ?? 0;
+    if (changed === 0) {
+      return Response.json({ ok: false, error: "not found" }, { status: 404 });
+    }
+
+    return Response.json({ ok: true });
+  }
+  
   // 一覧
   reloadBtn.addEventListener("click", loadList);
 
