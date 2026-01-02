@@ -62,8 +62,8 @@
 
   const API_BASE = "https://memo-save-api.jetkitayan.workers.dev";
 
-  const BASIC_USER = "jet-pay";
-  const BASIC_PASS = "kibare@1002";
+  const BASIC_USER = "";
+  const BASIC_PASS = "";
 
   const form = document.getElementById("form");
   const textEl = document.getElementById("text");
@@ -380,6 +380,32 @@
       }
     });  
   }
+
+  (async function autoLogin() {
+    const u = localStorage.getItem(LS_USER_KEY);
+    const p = localStorage.getItem(LS_PASS_KEY);
+  
+    if (!u || !p) return; // 保存されてなければ何もしない
+  
+    BASIC_USER = u;
+    BASIC_PASS = p;
+  
+    // 認証確認（軽いAPI）
+    const res = await fetch(`${API_BASE}/api/memos?limit=1`, {
+      headers: { "Authorization": basicAuthHeader() }
+    });
+  
+    if (res.ok) {
+      // 成功 → ログイン画面スキップ
+      document.getElementById("login").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      loadList();
+    } else {
+      // 失敗 → 保存情報を削除
+      localStorage.removeItem(LS_USER_KEY);
+      localStorage.removeItem(LS_PASS_KEY);
+    }
+  })();
 
   // 初回ロード
   loadList();
