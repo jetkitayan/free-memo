@@ -437,30 +437,28 @@
     const u = localStorage.getItem(LS_USER_KEY);
     const p = localStorage.getItem(LS_PASS_KEY);
   
-    if (!u || !p) return; // 保存されてなければ何もしない
+    if (!u || !p) {
+      showLogin();
+      return;
+    }
   
     BASIC_USER = u;
     BASIC_PASS = p;
   
-    // 認証確認（軽いAPI）
-    const res = await fetch(`${API_BASE}/api/memos?limit=1`, {
-      headers: { "Authorization": basicAuthHeader() }
-    });
+    const res = await apiFetch(`/api/memos?limit=1`, { method: "GET" });
   
     if (res.ok) {
-      // 成功 → ログイン画面スキップ
-      document.getElementById("login").style.display = "none";
-      document.getElementById("app").style.display = "block";
+      showApp();
       loadList();
     } else {
-      // 失敗 → 保存情報を削除
       localStorage.removeItem(LS_USER_KEY);
       localStorage.removeItem(LS_PASS_KEY);
+      BASIC_USER = "";
+      BASIC_PASS = "";
+      showLogin("保存されていたログイン情報が無効でした。再ログインしてね");
     }
   })();
-
-  // 初回ロード
-  loadList();
+  
 </script>
 </div><!-- /#app -->
 </body>
