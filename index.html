@@ -140,6 +140,7 @@
   reloadBtn.addEventListener("click", loadList);
 
   async function loadList() {
+    try {
     const limit = Number(limitInput.value || 50);
     const all = showAll.checked ? "&all=1" : "";
     const res = await apiFetch(`/api/memos?limit=${encodeURIComponent(limit)}${all}`);
@@ -251,6 +252,10 @@
       });
 
       list.appendChild(div);
+    }
+    } catch (e) {
+      console.error(e);
+      list.textContent = "画面側JSでエラー。F12→Consoleを見て！";
     }
   }
 
