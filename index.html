@@ -73,6 +73,10 @@
   const showRandomBtn = document.getElementById("showRandom");
   const randomResult = document.getElementById("randomResult");
 
+  function basicAuthHeader() {
+    return "Basic " + btoa(`${BASIC_USER}:${BASIC_PASS}`);
+  }
+  
   function escapeHtml(s){
     return String(s ?? "").replace(/[&<>"']/g, (c) => ({
       "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
