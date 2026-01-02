@@ -141,118 +141,118 @@
 
   async function loadList() {
     try {
-    const limit = Number(limitInput.value || 50);
-    const all = showAll.checked ? "&all=1" : "";
-    const res = await apiFetch(`/api/memos?limit=${encodeURIComponent(limit)}${all}`);
-    const data = await res.json().catch(() => ({}));
-    list.innerHTML = "";
-
-    if (!res.ok || !data.ok) {
-      list.textContent = data.error || `取得に失敗（HTTP ${res.status})`;
-      return;
-    }
-    const memos = data.memos || [];
-    if (memos.length === 0) {
-      list.textContent = "登録はまだありません。";
-      return;
-    }
-
-    for (const m of memos) {
-      const div = document.createElement("div");
-      div.className = "item";
-
-      const jstC = new Date(m.created_at).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' });
-      const jstU = new Date(m.updated_at).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' });
-      const visible = (m.status ?? 1) === 1;
-
-      div.innerHTML = `
-        <div class="view">
-          <div>${escapeHtml(m.text).replace(/\n/g, "<br>")}</div>
-          <div class="meta">
-            #${m.id} / 作成:${jstC} / 最終更新:${jstU} / ${visible ? "" : "（削除済み）"}
-            <button class="copy-btn" style="margin-left:8px;">コピー</button>
-            <button class="edit-btn" style="margin-left:6px;">編集</button>
-            <button class="toggle-btn" style="margin-left:6px;">
-              ${visible ? "削除扱いにする" : "復活させる"}
-            </button>
-            <button class="hard-del-btn" style="margin-left:6px;">完全削除</button>
+      const limit = Number(limitInput.value || 50);
+      const all = showAll.checked ? "&all=1" : "";
+      const res = await apiFetch(`/api/memos?limit=${encodeURIComponent(limit)}${all}`);
+      const data = await res.json().catch(() => ({}));
+      list.innerHTML = "";
+  
+      if (!res.ok || !data.ok) {
+        list.textContent = data.error || `取得に失敗（HTTP ${res.status})`;
+        return;
+      }
+      const memos = data.memos || [];
+      if (memos.length === 0) {
+        list.textContent = "登録はまだありません。";
+        return;
+      }
+  
+      for (const m of memos) {
+        const div = document.createElement("div");
+        div.className = "item";
+  
+        const jstC = new Date(m.created_at).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' });
+        const jstU = new Date(m.updated_at).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' });
+        const visible = (m.status ?? 1) === 1;
+  
+        div.innerHTML = `
+          <div class="view">
+            <div>${escapeHtml(m.text).replace(/\n/g, "<br>")}</div>
+            <div class="meta">
+              #${m.id} / 作成:${jstC} / 最終更新:${jstU} / ${visible ? "" : "（削除済み）"}
+              <button class="copy-btn" style="margin-left:8px;">コピー</button>
+              <button class="edit-btn" style="margin-left:6px;">編集</button>
+              <button class="toggle-btn" style="margin-left:6px;">
+                ${visible ? "削除扱いにする" : "復活させる"}
+              </button>
+              <button class="hard-del-btn" style="margin-left:6px;">完全削除</button>
+            </div>
           </div>
-        </div>
-
-        <div class="edit">
-          <textarea class="edit-text"></textarea>
-          <div class="row">
-            <span class="right">
-              <button class="save-btn">保存</button>
-              <button class="cancel-btn" type="button">キャンセル</button>
-            </span>
+  
+          <div class="edit">
+            <textarea class="edit-text"></textarea>
+            <div class="row">
+              <span class="right">
+                <button class="save-btn">保存</button>
+                <button class="cancel-btn" type="button">キャンセル</button>
+              </span>
+            </div>
           </div>
-        </div>
-      `;
-
-      div.querySelector(".edit-text").value = m.text;
-
-      // コピー
-      div.querySelector(".copy-btn").addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(m.text);
-          msg.textContent = "コピーしました。";
-        } catch (e) {
-          alert("コピーに失敗しました");
-        }
-      });
-
-      // 編集表示切替
-      div.querySelector(".edit-btn").addEventListener("click", () => {
-        div.querySelector(".view").style.display = "none";
-        div.querySelector(".edit").style.display = "block";
-      });
-      div.querySelector(".cancel-btn").addEventListener("click", () => {
-        div.querySelector(".edit").style.display = "none";
-        div.querySelector(".view").style.display = "block";
-      });
-
-      // 保存（PUT）
-      div.querySelector(".save-btn").addEventListener("click", async () => {
-        const newText = div.querySelector(".edit-text").value;
-        const r = await apiFetch(`/api/memos/${m.id}`, {
-          method: "PUT",
-          body: JSON.stringify({ text: newText })
+        `;
+  
+        div.querySelector(".edit-text").value = m.text;
+  
+        // コピー
+        div.querySelector(".copy-btn").addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(m.text);
+            msg.textContent = "コピーしました。";
+          } catch (e) {
+            alert("コピーに失敗しました");
+          }
         });
-        const d = await r.json().catch(() => ({}));
-        if (r.ok && d.ok) await loadList();
-        else alert(d.error || "更新に失敗しました");
-      });
-
-      // 削除/復活（status）
-      div.querySelector(".toggle-btn").addEventListener("click", async () => {
-        const nextVal = visible ? 0 : 1;
-        const r = await apiFetch(`/api/memos/${m.id}`, {
-          method: "PUT",
-          body: JSON.stringify({ status: nextVal })
+  
+        // 編集表示切替
+        div.querySelector(".edit-btn").addEventListener("click", () => {
+          div.querySelector(".view").style.display = "none";
+          div.querySelector(".edit").style.display = "block";
         });
-        const d = await r.json().catch(() => ({}));
-        if (r.ok && d.ok) await loadList();
-        else alert(d.error || "更新に失敗しました");
-      });
-
-      // 完全削除
-      div.querySelector(".hard-del-btn").addEventListener("click", async () => {
-        if (!confirm(`#${m.id} を完全削除します。元に戻せません。OK？`)) return;
-
-        const r = await apiFetch(`/api/memos/${m.id}`, { method: "DELETE" });
-        const d = await r.json().catch(() => ({}));
-
-        if (r.ok && d.ok) {
-          msg.textContent = "完全削除しました。";
-          await loadList();
-        } else {
-          alert(d.error || `完全削除に失敗（HTTP ${r.status}）`);
-        }
-      });
-
-      list.appendChild(div);
-    }
+        div.querySelector(".cancel-btn").addEventListener("click", () => {
+          div.querySelector(".edit").style.display = "none";
+          div.querySelector(".view").style.display = "block";
+        });
+  
+        // 保存（PUT）
+        div.querySelector(".save-btn").addEventListener("click", async () => {
+          const newText = div.querySelector(".edit-text").value;
+          const r = await apiFetch(`/api/memos/${m.id}`, {
+            method: "PUT",
+            body: JSON.stringify({ text: newText })
+          });
+          const d = await r.json().catch(() => ({}));
+          if (r.ok && d.ok) await loadList();
+          else alert(d.error || "更新に失敗しました");
+        });
+  
+        // 削除/復活（status）
+        div.querySelector(".toggle-btn").addEventListener("click", async () => {
+          const nextVal = visible ? 0 : 1;
+          const r = await apiFetch(`/api/memos/${m.id}`, {
+            method: "PUT",
+            body: JSON.stringify({ status: nextVal })
+          });
+          const d = await r.json().catch(() => ({}));
+          if (r.ok && d.ok) await loadList();
+          else alert(d.error || "更新に失敗しました");
+        });
+  
+        // 完全削除
+        div.querySelector(".hard-del-btn").addEventListener("click", async () => {
+          if (!confirm(`#${m.id} を完全削除します。元に戻せません。OK？`)) return;
+  
+          const r = await apiFetch(`/api/memos/${m.id}`, { method: "DELETE" });
+          const d = await r.json().catch(() => ({}));
+  
+          if (r.ok && d.ok) {
+            msg.textContent = "完全削除しました。";
+            await loadList();
+          } else {
+            alert(d.error || `完全削除に失敗（HTTP ${r.status}）`);
+          }
+        });
+  
+        list.appendChild(div);
+      }
     } catch (e) {
       console.error(e);
       list.textContent = "画面側JSでエラー。F12→Consoleを見て！";
