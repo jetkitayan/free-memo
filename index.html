@@ -69,6 +69,27 @@
     </span>
   </div>
 
+  <!-- ▼キーワード（文章作成の手掛かり） -->
+  <div class="item" style="max-width:720px;">
+    <div style="font-weight:600; margin-bottom:8px;">キーワード</div>
+
+    <div class="row" style="margin-bottom:8px;">
+      <input id="kwText" placeholder="キーワード（例：rain / betrayal / 朝焼け）"
+             style="padding:8px; flex:1; min-width:220px;">
+      <input id="kwNote" placeholder="メモ（任意）"
+             style="padding:8px; flex:1; min-width:220px;">
+      <button id="kwAddBtn" type="button">登録</button>
+    </div>
+
+    <div class="row" style="margin-bottom:8px;">
+      <button id="kwRandomBtn" type="button">キーワードRandom</button>
+      <button id="kwExportBtn" type="button">キーワードCSV</button>
+      <span id="kwMsg" class="muted"></span>
+    </div>
+
+    <div id="kwResult" class="item" style="display:none; background:#f7f7ff;"></div>
+  </div>
+    
   <div id="randomResult" class="item" style="display:none; background:#f7fff7;"></div>
   <div class="list" id="list"></div>
 
