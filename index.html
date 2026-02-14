@@ -94,6 +94,110 @@
   <div class="list" id="list"></div>
 
 <script>
+  // ===== キーワードUI =====
+  const kwTextEl   = document.getElementById("kwText");
+  const kwNoteEl   = document.getElementById("kwNote");
+  const kwAddBtn   = document.getElementById("kwAddBtn");
+  const kwRandomBtn= document.getElementById("kwRandomBtn");
+  const kwExportBtn= document.getElementById("kwExportBtn");
+  const kwMsg      = document.getElementById("kwMsg");
+  const kwResult   = document.getElementById("kwResult");
+
+  function setKwMsg(t){ kwMsg.textContent = t || ""; }
+
+  // 登録: POST /api/keywords
+  kwAddBtn.addEventListener("click", async () => {
+    setKwMsg("");
+    const keyword = (kwTextEl.value || "").trim();
+    const note    = (kwNoteEl.value || "").trim();
+
+    if (!keyword) { setKwMsg("キーワードが空です"); return; }
+
+    const res = await apiFetch(`/api/keywords`, {
+      method: "POST",
+      body: JSON.stringify({ keyword, note })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      setKwMsg(data.error || `登録に失敗（HTTP ${res.status}）`);
+      return;
+    }
+
+    setKwMsg("登録しました");
+    kwTextEl.value = "";
+    kwNoteEl.value = "";
+    kwTextEl.focus();
+  });
+
+  // ランダム: GET /api/keywords/random
+  kwRandomBtn.addEventListener("click", async () => {
+    setKwMsg("");
+
+    const res = await apiFetch(`/api/keywords/random`);
+    const data = await res.json().catch(() => ({}));
+
+    kwResult.style.display = "block";
+
+    if (!res.ok || !data.ok) {
+      kwResult.textContent = data.error || `失敗（HTTP ${res.status}）`;
+      return;
+    }
+
+    const k = data.keyword; // { id, keyword, note, created_at, updated_at }
+    const jstC = new Date(k.created_at).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' });
+    const jstU = new Date(k.updated_at).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' });
+
+    kwResult.innerHTML = `
+      <div style="font-size:20px; font-weight:700;">${escapeHtml(k.keyword)}</div>
+      ${k.note ? `<div style="margin-top:6px;">${escapeHtml(k.note)}</div>` : ``}
+      <div class="meta">#${k.id} / 作成:${jstC} / 最終更新:${jstU}</div>
+      <div class="row" style="margin-top:8px;">
+        <button class="kw-copy-btn">コピー</button>
+        <button class="kw-reroll-btn">もう一回</button>
+        <button class="kw-hide-btn">非表示</button>
+      </div>
+    `;
+
+    kwResult.querySelector(".kw-copy-btn").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(k.keyword);
+        setKwMsg("コピーしました");
+      } catch {
+        alert("コピーに失敗しました");
+      }
+    });
+
+    kwResult.querySelector(".kw-reroll-btn").addEventListener("click", () => {
+      kwRandomBtn.click();
+    });
+
+    kwResult.querySelector(".kw-hide-btn").addEventListener("click", () => {
+      kwResult.style.display = "none";
+    });
+  });
+
+  // CSV: GET /api/keywords/export_csv
+  kwExportBtn.addEventListener("click", async () => {
+    setKwMsg("");
+
+    const res = await apiFetch(`/api/keywords/export_csv`);
+    if (!res.ok) {
+      alert(`エクスポート失敗（HTTP ${res.status}）`);
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `keywords_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+  
   const LS_USER_KEY = "memo_basic_user";
   const LS_PASS_KEY = "memo_basic_pass";
 
