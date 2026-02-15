@@ -219,14 +219,26 @@
   // CSV: GET /api/keywords/export_csv
   kwExportBtn.addEventListener("click", async () => {
     setKwMsg("");
-
-    const res = await apiFetch(`/api/keywords/export_csv`);
-    if (!res.ok) {
-      alert(`エクスポート失敗（HTTP ${res.status}）`);
+  
+    // Workerに export_csv が無いので、一覧取得してCSVを作る
+    const res = await apiFetch(`/api/keywords?all=1&limit=500`);
+    const data = await res.json().catch(() => ({}));
+  
+    if (!res.ok || !data.ok) {
+      alert(data.error || `エクスポート失敗（HTTP ${res.status}）`);
       return;
     }
-
-    const blob = await res.blob();
+  
+    const rows = data.keywords ?? [];
+    let csv = "\uFEFFid,keyword,status,created_at,updated_at\r\n";
+  
+    const esc = (v) => String(v ?? "").replace(/"/g, '""');
+  
+    for (const k of rows) {
+      csv += `${k.id},"${esc(k.keyword)}",${k.status ?? 1},${k.created_at},${k.updated_at}\r\n`;
+    }
+  
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
