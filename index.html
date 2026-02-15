@@ -183,6 +183,21 @@
       </div>
     `;
 
+    // 完全削除（キーワード）
+    kwResult.querySelector(".kw-delete-btn").addEventListener("click", async () => {
+      if (!confirm(`#${k.id} を完全削除します。元に戻せません。OK？`)) return;
+
+      const r = await apiFetch(`/api/keywords/${k.id}`, { method: "DELETE" });
+      const d = await r.json().catch(() => ({}));
+
+      if (r.ok && d.ok) {
+        setKwMsg("完全削除しました");
+        kwRandomBtn.click(); // 次のランダムを表示
+      } else {
+        alert(d.error || `削除に失敗しました（HTTP ${r.status}）`);
+      }
+    });
+    
     kwResult.querySelector(".kw-copy-btn").addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(k.keyword);
@@ -222,14 +237,6 @@
     URL.revokeObjectURL(url);
   });
   
-  const LS_USER_KEY = "memo_basic_user";
-  const LS_PASS_KEY = "memo_basic_pass";
-
-  const API_BASE = "https://memo-save-api.jetkitayan.workers.dev";
-
-  let BASIC_USER = "";
-  let BASIC_PASS = "";
-
   const form = document.getElementById("form");
   const textEl = document.getElementById("text");
   const msg = document.getElementById("msg");
@@ -240,28 +247,6 @@
   const showAll = document.getElementById("showAll");
   const showRandomBtn = document.getElementById("showRandom");
   const randomResult = document.getElementById("randomResult");
-
-  function basicAuthHeader() {
-    return "Basic " + btoa(`${BASIC_USER}:${BASIC_PASS}`);
-  }
-  
-  function escapeHtml(s){
-    return String(s ?? "").replace(/[&<>"']/g, (c) => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-    }[c]));
-  }
-
-  async function apiFetch(path, options = {}) {
-    const headers = { ...(options.headers || {}) };
-  
-    // JSONボディがある時だけ付ける（GETで不要な時もある）
-    if (options.body != null) headers["Content-Type"] = "application/json";
-  
-    // ログイン済みの時だけ Authorization 付与
-    if (BASIC_USER && BASIC_PASS) headers["Authorization"] = basicAuthHeader();
-  
-    return fetch(`${API_BASE}${path}`, { ...options, headers });
-  }
 
   // ログイン成功後の表示切替
   function showApp() {
@@ -570,23 +555,6 @@
         await doReroll();
       } else {
         alert(d.error || "更新に失敗しました");
-      }
-    });
-
-    kwResult.querySelector(".kw-delete-btn").addEventListener("click", async () => {
-      if (!confirm(`#${k.id} を完全削除します。元に戻せません。OK？`)) return;
-    
-      const r = await apiFetch(`/api/keywords/${k.id}`, {
-        method: "DELETE"
-      });
-    
-      const d = await r.json().catch(() => ({}));
-    
-      if (r.ok && d.ok) {
-        setKwMsg("完全削除しました");
-        kwRandomBtn.click(); // 次のランダムを表示
-      } else {
-        alert(d.error || "削除に失敗しました");
       }
     });
     
