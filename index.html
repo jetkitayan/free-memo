@@ -92,6 +92,35 @@
   <div class="list" id="list"></div>
 
 <script>
+  const LS_USER_KEY = "memo_basic_user";
+  const LS_PASS_KEY = "memo_basic_pass";
+  
+  const API_BASE = "https://memo-save-api.jetkitayan.workers.dev";
+  
+  let BASIC_USER = "";
+  let BASIC_PASS = "";
+  
+  // ★UTF-8対応（②で説明）
+  function basicAuthHeader() {
+    const token = btoa(unescape(encodeURIComponent(`${BASIC_USER}:${BASIC_PASS}`)));
+    return "Basic " + token;
+  }
+  
+  function escapeHtml(s){
+    return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+  
+  async function apiFetch(path, options = {}) {
+    const headers = { ...(options.headers || {}) };
+  
+    if (options.body != null) headers["Content-Type"] = "application/json";
+    if (BASIC_USER && BASIC_PASS) headers["Authorization"] = basicAuthHeader();
+  
+    return fetch(`${API_BASE}${path}`, { ...options, headers });
+  }
+  
   // ===== キーワードUI =====
   const kwTextEl   = document.getElementById("kwText");
   const kwAddBtn   = document.getElementById("kwAddBtn");
