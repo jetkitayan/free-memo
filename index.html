@@ -544,6 +544,23 @@
       }
     });
 
+    kwResult.querySelector(".kw-delete-btn").addEventListener("click", async () => {
+      if (!confirm(`#${k.id} を完全削除します。元に戻せません。OK？`)) return;
+    
+      const r = await apiFetch(`/api/keywords/${k.id}`, {
+        method: "DELETE"
+      });
+    
+      const d = await r.json().catch(() => ({}));
+    
+      if (r.ok && d.ok) {
+        setKwMsg("完全削除しました");
+        kwRandomBtn.click(); // 次のランダムを表示
+      } else {
+        alert(d.error || "削除に失敗しました");
+      }
+    });
+    
     randomResult.querySelector(".hard-del-btn").addEventListener("click", async () => {
       if (!confirm(`#${m.id} を完全削除します。元に戻せません。OK？`)) return;
 
