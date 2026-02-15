@@ -58,10 +58,6 @@
     <input id="limit" type="number" value="50" min="1" max="500">
     <button id="reload" type="button">一覧取得</button>
 
-    <label style="display:flex; gap:6px; align-items:center;">
-      <input type="checkbox" id="showAll"> 削除済みも含める
-    </label>
-
     <button id="export" type="button">CSV出力</button>
 
     <span class="right">
@@ -256,7 +252,6 @@
   const limitInput = document.getElementById("limit");
   const reloadBtn = document.getElementById("reload");
   const exportBtn = document.getElementById("export");
-  const showAll = document.getElementById("showAll");
   const showRandomBtn = document.getElementById("showRandom");
   const randomResult = document.getElementById("randomResult");
 
@@ -322,8 +317,7 @@
   async function loadList() {
     try {
       const limit = Number(limitInput.value || 50);
-      const all = showAll.checked ? "&all=1" : "";
-      const res = await apiFetch(`/api/memos?limit=${encodeURIComponent(limit)}${all}`);
+      const res = await apiFetch(`/api/memos?limit=${encodeURIComponent(limit)}`);
       const data = await res.json().catch(() => ({}));
       list.innerHTML = "";
   
