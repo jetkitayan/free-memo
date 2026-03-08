@@ -277,7 +277,7 @@
     BASIC_PASS = p;
   
     // 認証チェック（一覧1件）
-    const res = await apiFetch(`/api/memos?limit=1`, { method: "GET" });
+    const res = await apiFetch(`/api/items?limit=1`, { method: "GET" });
   
     if (res.ok) {
       localStorage.setItem(LS_USER_KEY, u);
@@ -323,7 +323,7 @@
   async function loadList() {
     try {
       const limit = Number(limitInput.value || 50);
-      const res = await apiFetch(`/api/memos?limit=${encodeURIComponent(limit)}`);
+      const res = await apiFetch(`/api/items?limit=${encodeURIComponent(limit)}`);
       const data = await res.json().catch(() => ({}));
       list.innerHTML = "";
   
@@ -395,7 +395,7 @@
         // 保存（PUT）
         div.querySelector(".save-btn").addEventListener("click", async () => {
           const newText = div.querySelector(".edit-text").value;
-          const r = await apiFetch(`/api/memos/${m.id}`, {
+          const r = await apiFetch(`/api/items/${m.id}`, {
             method: "PUT",
             body: JSON.stringify({ text: newText })
           });
@@ -407,7 +407,7 @@
         // 削除/復活（status）
         div.querySelector(".toggle-btn").addEventListener("click", async () => {
           const nextVal = visible ? 0 : 1;
-          const r = await apiFetch(`/api/memos/${m.id}`, {
+          const r = await apiFetch(`/api/items/${m.id}`, {
             method: "PUT",
             body: JSON.stringify({ status: nextVal })
           });
@@ -420,7 +420,7 @@
         div.querySelector(".hard-del-btn").addEventListener("click", async () => {
           if (!confirm(`#${m.id} を完全削除します。元に戻せません。OK？`)) return;
   
-          const r = await apiFetch(`/api/memos/${m.id}`, { method: "DELETE" });
+          const r = await apiFetch(`/api/items/${m.id}`, { method: "DELETE" });
           const d = await r.json().catch(() => ({}));
   
           if (r.ok && d.ok) {
@@ -442,7 +442,7 @@
   // CSV出力（memos）
   exportBtn.addEventListener("click", async () => {
     const all = showAll.checked ? "?all=1" : "";
-    const res = await apiFetch(`/api/memos/export_csv${all}`);
+    const res = await apiFetch(`/api/items/export_csv${all}`);
   
     if (!res.ok) {
       alert(`エクスポート失敗（HTTP ${res.status}）`);
@@ -464,7 +464,7 @@
   showRandomBtn.addEventListener("click", doReroll);
 
   async function doReroll() {
-    const res = await apiFetch(`/api/memos/random`);
+    const res = await apiFetch(`/api/items/random`);
     const data = await res.json().catch(() => ({}));
     randomResult.style.display = "block";
 
@@ -539,7 +539,7 @@
     // 保存（PUT）
     randomResult.querySelector(".save-btn").addEventListener("click", async () => {
       const newText = randomResult.querySelector(".edit-text").value;
-      const r = await apiFetch(`/api/memos/${m.id}`, {
+      const r = await apiFetch(`/api/items/${m.id}`, {
         method: "PUT",
         body: JSON.stringify({ text: newText })
       });
@@ -556,7 +556,7 @@
     // 削除/復活（status）
     randomResult.querySelector(".toggle-btn").addEventListener("click", async () => {
       const nextVal = visible ? 0 : 1;
-      const r = await apiFetch(`/api/memos/${m.id}`, {
+      const r = await apiFetch(`/api/items/${m.id}`, {
         method: "PUT",
         body: JSON.stringify({ status: nextVal })
       });
@@ -573,7 +573,7 @@
     randomResult.querySelector(".hard-del-btn").addEventListener("click", async () => {
       if (!confirm(`#${m.id} を完全削除します。元に戻せません。OK？`)) return;
 
-      const r = await apiFetch(`/api/memos/${m.id}`, { method: "DELETE" });
+      const r = await apiFetch(`/api/items/${m.id}`, { method: "DELETE" });
       const d = await r.json().catch(() => ({}));
 
       if (r.ok && d.ok) {
@@ -598,7 +598,7 @@
     BASIC_USER = u;
     BASIC_PASS = p;
   
-    const res = await apiFetch(`/api/memos?limit=1`, { method: "GET" });
+    const res = await apiFetch(`/api/items?limit=1`, { method: "GET" });
   
     if (res.ok) {
       showApp();
