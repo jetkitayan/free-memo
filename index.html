@@ -323,7 +323,7 @@
   async function loadList() {
     try {
       const limit = Number(limitInput.value || 50);
-      const res = await apiFetch(`/api/items?limit=${encodeURIComponent(limit)}`);
+      const res = await apiFetch(`/api/items?category=${encodeURIComponent("その他")}&limit=${encodeURIComponent(limit)}`);
       const data = await res.json().catch(() => ({}));
       list.innerHTML = "";
   
@@ -442,7 +442,7 @@
   // CSV出力（memos）
   exportBtn.addEventListener("click", async () => {
     const all = "";
-    const res = await apiFetch(`/api/export_csv${all}`);
+    const res = await apiFetch(`/api/export_csv?category=${encodeURIComponent("その他")}`);
   
     if (!res.ok) {
       alert(`エクスポート失敗（HTTP ${res.status}）`);
@@ -453,7 +453,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `memos_${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `memo_items_${new Date().toISOString().slice(0,10)}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
