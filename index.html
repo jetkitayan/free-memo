@@ -473,7 +473,7 @@
       return;
     }
 
-    const m = data.memo;
+    const m = data.item;
     const jstC = new Date(m.created_at).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' });
     const jstU = new Date(m.updated_at).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' });
     const visible = (m.status ?? 1) === 1;
