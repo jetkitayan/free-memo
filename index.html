@@ -464,7 +464,7 @@
   showRandomBtn.addEventListener("click", doReroll);
 
   async function doReroll() {
-    const res = await apiFetch(`/api/items/random`);
+    const res = await apiFetch(`/api/items/random?category=${encodeURIComponent("その他")}`);
     const data = await res.json().catch(() => ({}));
     randomResult.style.display = "block";
 
