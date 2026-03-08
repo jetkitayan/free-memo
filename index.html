@@ -331,7 +331,7 @@
         list.textContent = data.error || `取得に失敗（HTTP ${res.status})`;
         return;
       }
-      const memos = data.memos || [];
+      const memos = data.items || [];
       if (memos.length === 0) {
         list.textContent = "登録はまだありません。";
         return;
@@ -441,8 +441,8 @@
 
   // CSV出力（memos）
   exportBtn.addEventListener("click", async () => {
-    const all = showAll.checked ? "?all=1" : "";
-    const res = await apiFetch(`/api/items/export_csv${all}`);
+    const all = "";
+    const res = await apiFetch(`/api/export_csv${all}`);
   
     if (!res.ok) {
       alert(`エクスポート失敗（HTTP ${res.status}）`);
